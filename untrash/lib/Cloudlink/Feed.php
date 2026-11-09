@@ -119,7 +119,7 @@ class Feed {
     }
 
     /** Host names case-insensitively, IP addresses by value (fd00::1 = fd00:0::1, the mesh addresses). */
-    private static function sameHost(string $a, string $b): bool {
+    public static function sameHost(string $a, string $b): bool {
         $pa = @inet_pton($a);
         $pb = @inet_pton($b);
         return ($pa !== false && $pb !== false) ? $pa === $pb : strcasecmp($a, $b) === 0;

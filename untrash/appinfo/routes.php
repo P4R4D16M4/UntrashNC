@@ -6,6 +6,7 @@ return [
         ['name' => 'settings#state', 'url' => '/settings/state', 'verb' => 'GET'],
         ['name' => 'settings#join', 'url' => '/settings/join', 'verb' => 'POST'],
         ['name' => 'settings#nas', 'url' => '/settings/nas', 'verb' => 'POST'],
+        ['name' => 'settings#mounts', 'url' => '/settings/mounts', 'verb' => 'POST'],
         ['name' => 'settings#test', 'url' => '/settings/test', 'verb' => 'POST'],
         ['name' => 'settings#leave', 'url' => '/settings/leave', 'verb' => 'POST'],
     ],

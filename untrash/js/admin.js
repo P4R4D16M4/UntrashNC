@@ -21,6 +21,19 @@
 		m.textContent = text || '';
 		m.className = 'untrash-msg ' + (ok ? 'untrash-ok' : 'untrash-err');
 	}
+	function mounts(s) {
+		const mo = s.mounts || { enabled: true, groups: [], made: {} };
+		const name = node => (s.members.find(m => m.node === node) || {}).name || node;
+		const rows = Object.entries(mo.made || {}).flatMap(([node, shares]) => Object.entries(shares).map(([share, r]) =>
+			`<tr><td>${esc(name(node))}</td><td>${esc(share)}</td><td class="untrash-mono">${esc(r.mount)}</td><td>${esc(r.adopted ? T('made by hand, left as it is') : T('automatic'))}</td></tr>`)).join('');
+		return `<h3>${esc(T('Shares as external storages'))}</h3>
+			<p class="settings-hint">${esc(T('For each share a NAS offers this Nextcloud (on the NAS: UntrashMesh → this Nextcloud → Shares…), an external storage (WebDAV) is made, and removed again when the NAS withdraws the share. Each user enters their NAS user name and password once under Personal settings → External storage.'))}</p>
+			<p><label><input type="checkbox" id="untrash-mounts-on"${mo.enabled ? ' checked' : ''}> ${esc(T('Make the external storages automatically'))}</label></p>
+			<p><label>${esc(T('For the groups'))} <input type="text" id="untrash-mounts-groups" value="${esc((mo.groups || []).join(', '))}" placeholder="${esc(T('everyone'))}"></label>
+			<button id="untrash-mounts-save">${esc(T('Save'))}</button></p>
+			${rows ? `<table><thead><tr><th>NAS</th><th>${esc(T('Share'))}</th><th>${esc(T('Folder'))}</th><th></th></tr></thead><tbody>${rows}</tbody></table>`
+				: '<p>' + esc(T('No shares offered yet.')) + '</p>'}`;
+	}
 	function render(s) {
 		const b = $('untrash-body');
 		if (!s.mesh) {
@@ -68,7 +81,11 @@
 			<h3>${esc(T('Change feed'))}</h3>
 			<p class="settings-hint">${esc(T('For each NAS, the address of its WebDAV port with /untrash-cloudlink. External storages (WebDAV) whose URL is that NAS and whose folder is webdav/<share> are then updated path by path; set their "Check for changes" to "Never". The changes arrive every 5 minutes with the background jobs, or within seconds while "occ untrash:feed" runs as a service.'))}</p>
 			${nas || '<p>' + esc(T('No NAS in the mesh.')) + '</p>'}
+			${mounts(s)}
 			<p><button id="untrash-leave">${esc(T('Leave the mesh'))}</button></p>`;
+		$('untrash-mounts-save').onclick = async () => {
+			try { render(await call('mounts', { enabled: $('untrash-mounts-on').checked, groups: $('untrash-mounts-groups').value })); msg(T('Saved.'), true); } catch (e) { msg(e.message); }
+		};
 		b.querySelectorAll('.untrash-feed').forEach(d => {
 			const node = d.dataset.node;
 			d.querySelector('.untrash-save').onclick = async () => {

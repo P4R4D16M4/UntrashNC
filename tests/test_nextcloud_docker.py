@@ -188,6 +188,8 @@ try:
     db = sqlite3.connect(R + "/etc/untrash/zyxel/stock-config/ugs_conf.db")
     db.execute("CREATE TABLE smb_share (s_name, s_path, s_enable)")
     db.execute("INSERT INTO smb_share VALUES ('Photos', '/i-data/v1/Photos', 'y')")
+    db.execute("INSERT INTO smb_share VALUES ('Music', '/i-data/v1/Music', 'y')")     # not linked for the cloud at first
+    os.makedirs(R + "/i-data/v1/Music")
     db.commit()
     db.close()
     feed = W + "/feed"
@@ -240,10 +242,11 @@ try:
     check("directory refuses a request with a wrong signature (403)", code == 403)
 
     # ---------------------------------------------------------------- feed
-    occ("untrash:nas", nas["node"], "http://127.0.0.1:%d/untrash-cloudlink" % ap)
+    # a mount made by hand before the NAS address (setting the address makes the missing storages at once)
     out = occ("files_external:create", "/NAS", "dav", "password::password", "-c", "host=127.0.0.1:%d" % ap,
               "-c", "root=webdav/Photos", "-c", "secure=false", "-c", "user=x", "-c", "password=y")
     mid = out.strip().split()[-1]
+    occ("untrash:nas", nas["node"], "http://127.0.0.1:%d/untrash-cloudlink" % ap)
     occ("files_external:option", mid, "filesystem_check_changes", "0")
     occ("files:scan", "admin")
     check("mount scanned once: old.jpg and 2026/", {"old.jpg", "2026"} <= set(nc_dav("NAS")))
@@ -268,6 +271,52 @@ try:
     st = json.loads(occ("untrash:status"))
     last = [m for m in st["members"] if m["node"] == nas["node"]][0]["feed"]["last"]
     check("status shows the last feed round", last and last["ok"])
+
+    # ---------------------------------------------------------------- automatic external storages
+    def mounts(*a):
+        return json.loads(occ("untrash:mounts", *a, check=False))
+
+    def ext():
+        return {m["mount_point"]: m for m in json.loads(occ("files_external:list", "--output=json"))}
+    r = mounts()
+    made = r["made"].get(nas["node"], {})
+    check("mounts: the hand-made /NAS on Photos is adopted, nothing new made",
+          made.get("Photos", {}).get("adopted") is True and made["Photos"]["mount"] == "/NAS" and set(ext()) == {"/NAS"})
+    occ("files_external:create", "/Music", "dav", "password::password", "-c", "host=127.0.0.2:%d" % ap,
+        "-c", "root=webdav/Other", "-c", "secure=false", "-c", "user=x", "-c", "password=y")   # an unrelated mount on the name
+    mesh("cloud-link", nid, '["Photos", "Music"]')
+    check("NAS links Music for the cloud: the next round makes a storage for it", wait(lambda: "Music" in mounts()["made"].get(nas["node"], {}), 20))
+    r = mounts()
+    rec = r["made"][nas["node"]]["Music"]
+    e = ext().get(rec["mount"], {})
+    feed_music = r["round"][nas["node"]]["shares"]["Music"]
+    check("... named Music (nas-test), the name /Music being taken", rec["mount"] == "/Music (nas-test)" and rec["adopted"] is False)
+    check("... WebDAV on the NAS, folder webdav/Music, credentials entered by each user, group admin",
+          e.get("storage") == "\\OC\\Files\\Storage\\DAV" and e.get("authentication_type") == "password::userprovided"
+          and e["configuration"].get("host") == "127.0.0.1:%d" % ap and e["configuration"].get("root") == "webdav/Music"
+          and e["configuration"].get("secure") is False and e.get("applicable_groups") == ["admin"])
+    check("... check for changes: never with a feed, else on each access",
+          e["options"].get("filesystem_check_changes") == (0 if feed_music else 1) and e["options"].get("enable_sharing") is False)
+    check("a second round changes nothing", mounts()["made"] == r["made"] and len(ext()) == 3)
+    occ("group:add", "family")
+    mounts("--groups", "admin, family")
+    check("occ untrash:mounts --groups: the storage follows", sorted(ext()["/Music (nas-test)"]["applicable_groups"]) == ["admin", "family"]
+          and ext()["/NAS"]["applicable_groups"] == [])
+    base = "http://127.0.0.1:%d/untrash-cloudlink" % ap
+    occ("untrash:nas", nas["node"], "http://127.0.0.1:%d/untrash-cloudlink" % free_port())
+    check("a NAS that does not answer keeps its storages", "/Music (nas-test)" in ext()
+          and "Music" in json.loads(occ("untrash:status"))["mounts"]["made"][nas["node"]])
+    occ("untrash:nas", nas["node"], base)
+    mesh("cloud-link", nid, '["Photos"]')
+    check("NAS withdraws Music: its storage is removed", wait(lambda: "Music" not in mounts()["made"].get(nas["node"], {}), 20)
+          and "/Music (nas-test)" not in ext())
+    check("... the hand-made /NAS and the unrelated /Music stay", {"/NAS", "/Music"} <= set(ext()))
+    mounts("--off")
+    mesh("cloud-link", nid, '["Photos", "Music"]')
+    time.sleep(2)
+    check("--off: no new storages", "/Music (nas-test)" not in ext() and mounts()["round"] == {"skipped": "off"})
+    mesh("cloud-link", nid, '["Photos"]')
+    mounts("--on")
 
     # HTTPS with the key pin from the NAS's signed record (self-signed certificate, no CA)
     check("the NAS's record pins its TLS key", [m for m in st["members"] if m["node"] == nas["node"]][0].get("pinned") is True)

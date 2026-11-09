@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\Untrash\Command;
 
 use OCA\Untrash\Cloudlink\Feed as FeedService;
+use OCA\Untrash\Cloudlink\Mounts;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -17,10 +18,12 @@ use Symfony\Component\Console\Output\OutputInterface;
  */
 class Feed extends Command {
     private FeedService $feed;
+    private Mounts $mounts;
 
-    public function __construct(FeedService $feed) {
+    public function __construct(FeedService $feed, Mounts $mounts) {
         parent::__construct();
         $this->feed = $feed;
+        $this->mounts = $mounts;
     }
 
     protected function configure(): void {
@@ -34,6 +37,7 @@ class Feed extends Command {
             $out->writeln($s);
         };
         do {
+            $this->mounts->sync();          // at most once a minute: new or withdrawn shares
             $r = $this->feed->run($in->getOption('once') ? 0 : max(1, min(120, (int)$in->getOption('wait'))), $say);
             if ($in->getOption('once')) {
                 $out->writeln(json_encode($r, JSON_UNESCAPED_SLASHES));

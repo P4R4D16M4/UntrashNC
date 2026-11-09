@@ -45,14 +45,25 @@ app's upgrade steps on the next `occ upgrade` or page load.
    - Over HTTPS the NAS's self-signed certificate is checked against the key
      pin in its signed mesh record ("HTTPS key pinned through the mesh").
    - Another key at that address is refused.
-4. **External storage**, one per share:
-   - Backend **WebDAV**.
-   - URL: the NAS (for example `nas.local:5002`).
-   - Remote subfolder: `webdav/<share>`.
-   - **Check for changes: Never.**
-   - Credentials that work without a user session (global, stored in the
-     database, or log-in credentials saved in the database). Mounts with
-     credentials that exist only in the session are skipped by the feed.
+4. **External storages** are made automatically (app *External storage
+   support* on), one per share the NAS offers this Nextcloud:
+   - Backend WebDAV, the NAS's WebDAV port from the feed address, folder
+     `webdav/<share>`, mount point `/<share>` (`/<share> (<NAS>)` if the name
+     is taken).
+   - Credentials: **entered by each user**, once, under **Personal settings →
+     External storage**, with their user name and password on the NAS. The
+     NAS keeps each user's rights.
+   - Check for changes: **Never** while the NAS reports a change feed for the
+     share, else **Once every direct access**.
+   - For the groups set under **Shares as external storages** (default
+     `admin`; empty = everyone), or `occ untrash:mounts --groups a,b`.
+   - A new share linked on the NAS (**UntrashMesh → this Nextcloud →
+     Shares…**) appears within about 5 minutes (background jobs) or a
+     minute (`occ untrash:feed` as a service); a withdrawn one is removed.
+     `occ untrash:mounts` does a round at once.
+   - A storage made by hand on the same NAS and folder is kept as it is and
+     never removed. A NAS that does not answer keeps its storages.
+   - `occ untrash:mounts --off` stops making storages; existing ones stay.
 
 ## NAS behind a router: the tunnel
 
@@ -90,17 +101,9 @@ systemctl enable --now untrash-cloud-wg
 - Within about 10 minutes every NAS has the new record and connects. The
   settings page then shows **Tunnel connected** per NAS. **Use the mesh
   address** sets the feed address to `http://[<mesh address>]:5002/untrash-cloudlink`.
-- External storage through the tunnel, one per share:
-
-  ```
-  occ files_external:create /Photos dav password::password \
-      -c host='[<NAS mesh address>]:5002' -c root=webdav/Photos -c secure=false
-  occ files_external:option <id> filesystem_check_changes 0
-  ```
-
-  Add the credentials in the settings, or with `-c user=… -c password=…`
-  for a global mount. `occ untrash:status` lists each NAS's `address`.
-  Plain HTTP is right here: WireGuard encrypts it.
+- The automatic external storages then use the mesh address too (a
+  changed feed address moves them). Plain HTTP is right here: WireGuard
+  encrypts it. `occ untrash:status` lists each NAS's `address`.
 - `untrash-cloud-wg --down` ends the tunnel: the NAS drop the peer.
 
 ## Feed timing
@@ -131,6 +134,7 @@ WantedBy=multi-user.target
 | `occ untrash:status` | membership, members, feed state (JSON) |
 | `occ untrash:nas NODE URL [--insecure]` | feed address of a NAS |
 | `occ untrash:feed [--once] [--wait S]` | apply the change feed (loop, or one round) |
+| `occ untrash:mounts [--groups G] [--on\|--off]` | external storages for the offered shares: one round now, settings |
 | `occ untrash:tunnel sync\|off` | the tunnel helper's interface (cloud-api.md §4) |
 
 ## Translations

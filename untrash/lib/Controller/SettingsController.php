@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\Untrash\Controller;
 
 use OCA\Untrash\Cloudlink\Client;
+use OCA\Untrash\Cloudlink\Mounts;
 use OCA\Untrash\Mesh\Mesh;
 use OCA\Untrash\Mesh\MeshException;
 use OCP\AppFramework\Controller;
@@ -17,15 +18,17 @@ use OCP\IURLGenerator;
 class SettingsController extends Controller {
     private Mesh $mesh;
     private Client $client;
+    private Mounts $mounts;
     private IURLGenerator $urls;
     private IL10N $l;
 
     public function __construct(string $appName, IRequest $request, Mesh $mesh, Client $client, IURLGenerator $urls,
-                                IL10N $l) {
+                                IL10N $l, Mounts $mounts) {
         $this->l = $l;
         parent::__construct($appName, $request);
         $this->mesh = $mesh;
         $this->client = $client;
+        $this->mounts = $mounts;
         $this->urls = $urls;
     }
 
@@ -39,7 +42,21 @@ class SettingsController extends Controller {
 
     public function state(): JSONResponse {
         return $this->wrap(function () {
-            return $this->mesh->status();
+            return $this->status();
+        });
+    }
+
+    private function status(): array {
+        return $this->mesh->status() + ['mounts' => ['enabled' => $this->mounts->enabled(), 'groups' => $this->mounts->groups(),
+                                                     'made' => $this->mounts->state()]];
+    }
+
+    /** Automatic external storages: on/off, groups (comma-separated, "" = everyone); then one round. */
+    public function mounts(bool $enabled = true, string $groups = 'admin'): JSONResponse {
+        return $this->wrap(function () use ($enabled, $groups) {
+            $this->mounts->configure($enabled, explode(',', $groups));
+            $this->mounts->sync(true);
+            return $this->status();
         });
     }
 
@@ -66,7 +83,8 @@ class SettingsController extends Controller {
                                        'cursor' => ($old && $old->base === rtrim($base, '/')) ? $old->cursor : ''];
                 $this->mesh->save('nas.json', $all);
             });
-            return $this->mesh->status();
+            $this->mounts->sync(true);
+            return $this->status();
         });
     }
 

@@ -83,4 +83,16 @@ T = {
     "No tunnel: this server reaches a NAS only at the address entered below. With the helper untrash-cloud-wg on this server it reaches a NAS behind a router without a port forward (see the app README).":
         ("Kein Tunnel: Dieser Server erreicht ein NAS nur unter der unten eingetragenen Adresse. Mit dem Hilfsdienst untrash-cloud-wg auf diesem Server erreicht er ein NAS hinter einem Router ohne Portweiterleitung (siehe README der App).",
          "Pas de tunnel : ce serveur ne joint un NAS qu'à l'adresse saisie ci-dessous. Avec l'assistant untrash-cloud-wg sur ce serveur, il joint un NAS derrière un routeur sans redirection de port (voir le README de l'app)."),
+    "Shares as external storages": ("Freigaben als externe Speicher", "Partages comme stockages externes"),
+    "For each share a NAS offers this Nextcloud (on the NAS: UntrashMesh → this Nextcloud → Shares…), an external storage (WebDAV) is made, and removed again when the NAS withdraws the share. Each user enters their NAS user name and password once under Personal settings → External storage.":
+        ("Für jede Freigabe, die ein NAS dieser Nextcloud anbietet (auf dem NAS: UntrashMesh → diese Nextcloud → Freigaben…), wird ein externer Speicher (WebDAV) angelegt und wieder entfernt, wenn das NAS die Freigabe zurückzieht. Jeder Nutzer gibt seinen NAS-Benutzernamen und sein Passwort einmal unter Persönliche Einstellungen → Externer Speicher ein.",
+         "Pour chaque partage qu'un NAS propose à ce Nextcloud (sur le NAS : UntrashMesh → ce Nextcloud → Partages…), un stockage externe (WebDAV) est créé, puis retiré quand le NAS retire le partage. Chaque utilisateur saisit une fois son nom d'utilisateur et son mot de passe du NAS dans Paramètres personnels → Stockage externe."),
+    "Make the external storages automatically": ("Externe Speicher automatisch anlegen", "Créer les stockages externes automatiquement"),
+    "For the groups": ("Für die Gruppen", "Pour les groupes"),
+    "everyone": ("alle", "tout le monde"),
+    "Share": ("Freigabe", "Partage"),
+    "Folder": ("Ordner", "Dossier"),
+    "made by hand, left as it is": ("von Hand angelegt, bleibt unverändert", "créé à la main, laissé tel quel"),
+    "automatic": ("automatisch", "automatique"),
+    "No shares offered yet.": ("Noch keine Freigaben angeboten.", "Aucun partage proposé pour l'instant."),
 }

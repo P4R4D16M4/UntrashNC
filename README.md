@@ -10,6 +10,9 @@ devices:
 - **Change feed:** a linked UntrashOS NAS tells the Nextcloud which files
   changed in its shares. External storages (WebDAV) on that NAS are updated
   path by path instead of being scanned, so the NAS disks can sleep.
+- **External storages:** every share a NAS offers this Nextcloud appears as
+  an external storage (WebDAV) by itself; each user signs in with their NAS
+  account once.
 - **Tunnel (optional):** with the root helper `untrash-cloud-wg`, the
   Nextcloud server also becomes a WireGuard peer of the mesh, so it reaches
   the NAS shares with no port forwarded at home.

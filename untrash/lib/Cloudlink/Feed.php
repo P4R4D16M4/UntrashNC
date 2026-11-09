@@ -6,6 +6,7 @@ namespace OCA\Untrash\Cloudlink;
 
 use OCA\Untrash\Mesh\Mesh;
 use OCA\Untrash\Mesh\MeshException;
+use OCP\Files\Cache\IScanner;
 use OCP\Files\IRootFolder;
 use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\IDBConnection;
@@ -70,8 +71,12 @@ class Feed {
             $n = 0;
             foreach ($ch['rescan'] ?? [] as $share) {
                 foreach ($this->storages(trim($host, '[]'), (string)$share) as $st) {
-                    $st->getScanner()->scan('', \OC\Files\Cache\Scanner::SCAN_RECURSIVE,
-                                            \OC\Files\Cache\Scanner::REUSE_ETAG | \OC\Files\Cache\Scanner::REUSE_SIZE);
+                    try {
+                        $st->getScanner()->scan('', IScanner::SCAN_RECURSIVE,
+                                                IScanner::REUSE_ETAG | IScanner::REUSE_SIZE);
+                    } catch (\Throwable $e) {
+                        $this->log->info('untrash feed: rescan of ' . $share . ' skipped: ' . $e->getMessage());
+                    }
                 }
                 $say && $say("rescan $share");
             }
@@ -81,14 +86,18 @@ class Feed {
             }
             foreach ($byShare as $share => $paths) {
                 foreach ($this->storages(trim($host, '[]'), $share) as $st) {
-                    $up = $st->getUpdater();
-                    foreach ($paths as $p) {
-                        if ($p !== '' && $st->file_exists($p)) {
-                            $up->update($p);
-                        } elseif ($p !== '') {
-                            $up->remove($p);
+                    try {
+                        $up = $st->getUpdater();
+                        foreach ($paths as $p) {
+                            if ($p !== '' && $st->file_exists($p)) {
+                                $up->update($p);
+                            } elseif ($p !== '') {
+                                $up->remove($p);
+                            }
+                            $n++;
                         }
-                        $n++;
+                    } catch (\Throwable $e) {                  // one storage (credentials, NAS gone) does not stop the round
+                        $this->log->info('untrash feed: ' . $share . ' skipped: ' . $e->getMessage());
                     }
                 }
                 $say && $say("$share: " . count($paths) . ' changed');

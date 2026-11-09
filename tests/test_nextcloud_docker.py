@@ -315,8 +315,13 @@ try:
     mesh("cloud-link", nid, '["Photos", "Music"]')
     time.sleep(2)
     check("--off: no new storages", "/Music (nas-test)" not in ext() and mounts()["round"] == {"skipped": "off"})
-    mesh("cloud-link", nid, '["Photos"]')
     mounts("--on")
+    check("--on again: Music is made", "/Music (nas-test)" in ext())
+    open(R + "/i-data/v1/Music/a.mp3", "w").write("a")
+    open(share + "/both.jpg", "w").write("b")
+    open(feed, "a").write(R + "/i-data/v1/Music/a.mp3\n" + share + "/both.jpg\n")
+    r = json.loads(occ("untrash:feed", "--once").strip().splitlines()[-1])[nas["node"]]
+    check("a change on a storage nobody entered credentials for does not stop the feed", r["ok"] and "both.jpg" in nc_dav("NAS"))
 
     # HTTPS with the key pin from the NAS's signed record (self-signed certificate, no CA)
     check("the NAS's record pins its TLS key", [m for m in st["members"] if m["node"] == nas["node"]][0].get("pinned") is True)
@@ -392,6 +397,14 @@ try:
     check("removed on the NAS: the directory clears its address book", wait(lambda: not any(
         m["endpoints"] for m in json.loads(occ("untrash:status"))["members"] if not m["self"]), 20))
     check("... and reports itself as removed (settings page shows it)", json.loads(occ("untrash:status")).get("removed") is True)
+    occ("app:remove", "untrash")
+    left = set(ext())
+    check("app:remove: the storages it made are gone, the hand-made ones stay", "/Music (nas-test)" not in left
+          and {"/NAS", "/Music"} <= left)
+    gone = docker("exec", "-u", "www-data", NAME, "sh", "-c",
+                  "ls -d /var/www/html/data/appdata_*/untrash/mesh 2>/dev/null; php occ config:list untrash", check=False)
+    check("... and its mesh state (key) and settings", "/untrash/mesh" not in gone and "auto_mounts" not in gone
+          and "mount_groups" not in gone)
 finally:
     for p in procs:
         p.terminate()

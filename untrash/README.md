@@ -126,6 +126,20 @@ RestartSec=30
 WantedBy=multi-user.target
 ```
 
+## Privacy
+
+- This Nextcloud stores the signed address records of the mesh members
+  (names, public keys, internet addresses) and gives them only to members of
+  the mesh. Records it cannot verify are refused.
+- It talks only to the NAS of the mesh: their change feed (the paths of
+  changed files in the shares they offer this Nextcloud) and their WebDAV
+  shares, with each user's own NAS credentials.
+- With the tunnel helper, the server is a WireGuard peer of the mesh; its
+  firewall lets the NAS reach nothing on the server but the tunnel.
+- Nothing is sent to anyone else, including the authors of this app.
+- Uninstalling removes the external storages the app made (storages made by
+  hand stay) and its data in the Nextcloud app data folder.
+
 ## Commands
 
 | Command | Purpose |

@@ -1,4 +1,4 @@
-.PHONY: help test test-nextcloud app
+.PHONY: help test test-nextcloud app signed
 
 # UntrashNC: the UntrashOS app for Nextcloud ("untrash") and its tunnel helper.
 # The NAS side lives in UntrashOS; its contract is docs/architecture/cloud-api.md there.
@@ -9,6 +9,7 @@ help:
 	@echo "  make test-nextcloud  UNTRASHOS=<UntrashOS checkout> APACHEROOT=<dir> [NC_IMAGE=nextcloud:25-apache]"
 	@echo "                       the app against a real Nextcloud and the NAS side (Docker, sudo -n)"
 	@echo "  make app             release archives -> build/"
+	@echo "  make signed          ... signed for the app store (key + certificate in ~/.nextcloud/certificates)"
 
 test:
 	python3 tests/test_cloud_wg_checks.py
@@ -23,3 +24,6 @@ test-nextcloud:
 
 app:
 	python3 package.py build
+
+signed:
+	python3 sign.py build

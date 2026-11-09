@@ -62,6 +62,14 @@ class Mesh {
         }
     }
 
+    /** Uninstall: this Nextcloud's mesh identity and state go (a reinstall joins as a new member). */
+    public function forget(): void {
+        try {
+            $this->appData->getFolder('mesh')->delete();
+        } catch (NotFoundException $e) {
+        }
+    }
+
     /** @return mixed decoded JSON (objects as stdClass), or $default */
     public function load(string $name, $default) {
         try {

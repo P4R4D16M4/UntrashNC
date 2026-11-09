@@ -160,6 +160,26 @@ class Mounts {
         return $out;
     }
 
+    /** Uninstall: remove the mounts made here (adopted ones stay); returns how many. */
+    public function removeAll(): int {
+        try {
+            $svc = \OCP\Server::get(\OCA\Files_External\Service\GlobalStoragesService::class);
+        } catch (\Throwable $e) {
+            return 0;
+        }
+        $n = 0;
+        foreach (get_object_vars($this->state()) as $shares) {
+            foreach (get_object_vars($shares) as $rec) {
+                if (empty($rec->adopted)) {
+                    $this->remove($svc, (int)$rec->id);
+                    $n++;
+                }
+            }
+        }
+        $this->mesh->save('mounts.json', new \stdClass());
+        return $n;
+    }
+
     /** [host[:port] for the WebDAV backend, https?] from a feed address. */
     public static function target(string $base): array {
         $u = parse_url($base) ?: [];

@@ -32,6 +32,7 @@ Installation, setup and commands: [`untrash/README.md`](untrash/README.md).
 | `l10n/` | translation source (`catalog.py`); `build.py` writes `untrash/l10n/` |
 | `tests/` | `make test`, `make test-nextcloud` |
 | `package.py` | `make app`: reproducible release archives in `build/` |
+| `sign.py` | `make signed`: the same, code-signed for the app store, plus the upload signature |
 
 The interface to the NAS is specified in UntrashOS:
 [`docs/architecture/cloud-api.md`](https://github.com/P4R4D16M4/UntrashOS/blob/v1.2/docs/architecture/cloud-api.md).

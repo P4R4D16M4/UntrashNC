@@ -11,8 +11,10 @@
 * **External storages:** every share a NAS offers this Nextcloud appears as an external storage (WebDAV) by itself; each user signs in with their NAS account once.
 * **Tunnel (optional):** with the root helper untrash-cloud-wg, this server is also a WireGuard peer of the mesh. The NAS connect out to it, so it reaches their WebDAV shares and change feed with no port forwarded at home.
 
+**Privacy:** this Nextcloud stores the signed address records of the mesh members (names, public keys, internet addresses) and gives them only to members. It talks only to the NAS of the mesh: their change feed (paths of changed files in the shares they offer) and their WebDAV shares, with each user's own NAS credentials. Nothing is sent anywhere else.
+
 Setup and the optional tunnel helper: see the README in the repository.]]></description>
-    <version>0.6.0</version>
+    <version>0.6.1</version>
     <licence>agpl</licence>
     <author>UntrashOS</author>
     <namespace>Untrash</namespace>
@@ -29,6 +31,11 @@ Setup and the optional tunnel helper: see the README in the repository.]]></desc
     <background-jobs>
         <job>OCA\Untrash\BackgroundJob\FeedJob</job>
     </background-jobs>
+    <repair-steps>
+        <uninstall>
+            <step>OCA\Untrash\Migration\RemoveMounts</step>
+        </uninstall>
+    </repair-steps>
     <commands>
         <command>OCA\Untrash\Command\Join</command>
         <command>OCA\Untrash\Command\Status</command>

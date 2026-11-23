@@ -95,4 +95,7 @@ T = {
     "made by hand, left as it is": ("von Hand angelegt, bleibt unverändert", "créé à la main, laissé tel quel"),
     "automatic": ("automatisch", "automatique"),
     "No shares offered yet.": ("Noch keine Freigaben angeboten.", "Aucun partage proposé pour l'instant."),
+    "Nextcloud does not read files from local addresses such as {nas}: the storages show their folders, but files cannot be opened. To allow it (for all apps of this Nextcloud): occ config:system:set allow_local_remote_servers --value=true --type=boolean":
+        ("Nextcloud liest keine Dateien von lokalen Adressen wie {nas}: Die Speicher zeigen ihre Ordner, aber Dateien lassen sich nicht öffnen. Zum Erlauben (für alle Apps dieser Nextcloud): occ config:system:set allow_local_remote_servers --value=true --type=boolean",
+         "Nextcloud ne lit pas de fichiers depuis des adresses locales comme {nas} : les stockages montrent leurs dossiers, mais les fichiers ne s'ouvrent pas. Pour l'autoriser (pour toutes les applications de ce Nextcloud) : occ config:system:set allow_local_remote_servers --value=true --type=boolean"),
 }

@@ -26,7 +26,9 @@
 		const name = node => (s.members.find(m => m.node === node) || {}).name || node;
 		const rows = Object.entries(mo.made || {}).flatMap(([node, shares]) => Object.entries(shares).map(([share, r]) =>
 			`<tr><td>${esc(name(node))}</td><td>${esc(share)}</td><td class="untrash-mono">${esc(r.mount)}</td><td>${esc(r.adopted ? T('made by hand, left as it is') : T('automatic'))}</td></tr>`)).join('');
-		return `<h3>${esc(T('Shares as external storages'))}</h3>
+		const blocked = (mo.local_blocked || []).map(name);
+		const warn = blocked.length ? `<p class="untrash-err">${esc(T('Nextcloud does not read files from local addresses such as {nas}: the storages show their folders, but files cannot be opened. To allow it (for all apps of this Nextcloud): occ config:system:set allow_local_remote_servers --value=true --type=boolean', { nas: blocked.join(', ') }))}</p>` : '';
+		return `<h3>${esc(T('Shares as external storages'))}</h3>${warn}
 			<p class="settings-hint">${esc(T('For each share a NAS offers this Nextcloud (on the NAS: UntrashMesh → this Nextcloud → Shares…), an external storage (WebDAV) is made, and removed again when the NAS withdraws the share. Each user enters their NAS user name and password once under Personal settings → External storage.'))}</p>
 			<p><label><input type="checkbox" id="untrash-mounts-on"${mo.enabled ? ' checked' : ''}> ${esc(T('Make the external storages automatically'))}</label></p>
 			<p><label>${esc(T('For the groups'))} <input type="text" id="untrash-mounts-groups" value="${esc((mo.groups || []).join(', '))}" placeholder="${esc(T('everyone'))}"></label>

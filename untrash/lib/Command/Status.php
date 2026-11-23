@@ -26,7 +26,8 @@ class Status extends Command {
 
     protected function execute(InputInterface $in, OutputInterface $out): int {
         $out->writeln(json_encode($this->mesh->status() + ['mounts' => ['enabled' => $this->mounts->enabled(),
-            'groups' => $this->mounts->groups(), 'made' => $this->mounts->state()]], JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));
+            'groups' => $this->mounts->groups(), 'made' => $this->mounts->state(),
+            'local_blocked' => $this->mounts->localBlocked()]], JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));
         return 0;
     }
 }

@@ -14,7 +14,7 @@
 **Privacy:** this Nextcloud stores the signed address records of the mesh members (names, public keys, internet addresses) and gives them only to members. It talks only to the NAS of the mesh: their change feed (paths of changed files in the shares they offer) and their WebDAV shares, with each user's own NAS credentials. Nothing is sent anywhere else.
 
 Setup and the optional tunnel helper: see the README in the repository.]]></description>
-    <version>0.6.1</version>
+    <version>0.6.2</version>
     <licence>agpl</licence>
     <author>UntrashOS</author>
     <namespace>Untrash</namespace>
@@ -23,6 +23,9 @@ Setup and the optional tunnel helper: see the README in the repository.]]></desc
     <website>https://github.com/P4R4D16M4/UntrashNC</website>
     <bugs>https://github.com/P4R4D16M4/UntrashNC/issues</bugs>
     <repository type="git">https://github.com/P4R4D16M4/UntrashNC.git</repository>
+    <screenshot>https://raw.githubusercontent.com/P4R4D16M4/UntrashNC/main/screenshots/1-shares.png</screenshot>
+    <screenshot>https://raw.githubusercontent.com/P4R4D16M4/UntrashNC/main/screenshots/2-automatic.png</screenshot>
+    <screenshot>https://raw.githubusercontent.com/P4R4D16M4/UntrashNC/main/screenshots/3-mesh.png</screenshot>
     <dependencies>
         <php min-version="7.4"/>
         <lib>sodium</lib>

@@ -53,6 +53,8 @@ if not os.path.isfile(MESH):
 AR = os.path.abspath(sys.argv[1])
 IMAGE = sys.argv[2] if len(sys.argv) > 2 else "nextcloud:25-apache"
 NAME = "ut-nc-test"
+NAS_NAME = os.environ.get("UT_NAS_NAME", "nas-test")
+NC_NAME = os.environ.get("UT_NC_NAME", "nc-test")
 NC_PORT = 18080
 NC = "http://127.0.0.1:%d" % NC_PORT
 ADMIN_PW = "untrash-test-admin"         # throwaway container, never a real account
@@ -179,7 +181,7 @@ try:
         r = subprocess.run([MESH] + list(a), env=nenv, stdout=subprocess.PIPE, text=True)
         return json.loads(r.stdout.strip().splitlines()[-1])
     nas = mesh("create", "home")
-    mesh("rename", "nas-test")
+    mesh("rename", NAS_NAME)
     procs.append(subprocess.Popen([MESH, "run"], env=nenv, stdout=open(W + "/mesh.log", "w"), stderr=subprocess.STDOUT))
     # stock database for cloudlink: one share
     import sqlite3
@@ -207,6 +209,8 @@ try:
     conf += ["LoadModule %s_module %s/usr/lib/apache2/modules/mod_%s.so" % (m, AR, m) for m in mods]
     conf += ["DavLockDB %s/run/DavLock" % W, "Alias /webdav/Photos " + share, "<Directory %s>" % share, "  Require all granted",
              "</Directory>", "<Location /webdav/Photos>", "  Dav On", "</Location>",
+             "Alias /webdav/Music %s/i-data/v1/Music" % R, "<Directory %s/i-data/v1/Music>" % R, "  Require all granted",
+             "</Directory>", "<Location /webdav/Music>", "  Dav On", "</Location>",
              "ProxyPass /untrash-cloudlink/ http://127.0.0.1:%d/ timeout=180" % cp]
     for port, n in ((tp1, "nas"), (tp2, "other")):        # HTTPS like the NAS's port 5003, and an impostor
         conf += ["Listen 127.0.0.1:%d" % port, "<VirtualHost 127.0.0.1:%d>" % port, "  SSLEngine on",
@@ -218,7 +222,7 @@ try:
 
     # ---------------------------------------------------------------- join
     inv = mesh("invite-cloud", "1", '["Photos"]')["invitation"]
-    out = occ("untrash:join", inv, "--name", "nc-test", check=False)
+    out = occ("untrash:join", inv, "--name", NC_NAME, check=False)
     if '"mesh"' not in out:
         print(out)
     st = json.loads(occ("untrash:status"))
@@ -241,6 +245,35 @@ try:
         code = e.code
     check("directory refuses a request with a wrong signature (403)", code == 403)
 
+    if os.environ.get("UT_SHOWCASE"):
+        # screenshots for the app store: sample media, both shares offered, then a pause (no checks)
+        from PIL import Image, ImageDraw
+        os.remove(share + "/old.jpg")
+        scenes = [("lake", (40, 90, 160), (250, 190, 120)), ("mountains", (20, 40, 90), (240, 140, 90)),
+                  ("forest", (30, 70, 60), (200, 230, 160)), ("city-night", (10, 12, 30), (120, 60, 160)),
+                  ("beach", (60, 150, 210), (250, 230, 170)), ("meadow", (90, 160, 220), (170, 220, 120))]
+        for i, (n, top, bottom) in enumerate(scenes):
+            im = Image.new("RGB", (1200, 800))
+            d = ImageDraw.Draw(im)
+            for y in range(800):
+                f = y / 799
+                d.line([(0, y), (1200, y)], fill=tuple(int(top[k] + (bottom[k] - top[k]) * f) for k in range(3)))
+            d.ellipse([820 - i * 60, 140, 980 - i * 60, 300], fill=(255, 235, 180))
+            d.polygon([(0, 800), (0, 560), (300, 380 + i * 20), (620, 600), (900, 420), (1200, 560), (1200, 800)],
+                      fill=tuple(max(0, c // 3) for c in top))
+            im.save(share + ("/2026/" if i % 2 else "/") + n + ".jpg", quality=85)
+        for album, tracks in (("Live at Home", 4), ("Quiet Evenings", 3)):
+            os.makedirs(R + "/i-data/v1/Music/" + album)
+            for t in range(1, tracks + 1):
+                open("%s/i-data/v1/Music/%s/%02d Track %d.mp3" % (R, album, t, t), "wb").write(b"\0" * 4096)
+        occ("untrash:nas", nas["node"], "http://127.0.0.1:%d/untrash-cloudlink" % ap)
+        mesh("cloud-link", nid, '["Photos", "Music"]')
+        wait(lambda: "Music" in json.loads(occ("untrash:mounts"))["made"].get(nas["node"], {}), 30)
+        occ("user:setting", "admin", "theming", "enabled-themes", '["dark"]')
+        print("SHOWCASE READY: %s  admin / %s  stop: touch %s/stop" % (NC, ADMIN_PW, W), flush=True)
+        while not os.path.exists(W + "/stop"):
+            time.sleep(2)
+        sys.exit(0)
     # ---------------------------------------------------------------- feed
     # a mount made by hand before the NAS address (setting the address makes the missing storages at once)
     out = occ("files_external:create", "/NAS", "dav", "password::password", "-c", "host=127.0.0.1:%d" % ap,
@@ -272,6 +305,21 @@ try:
     last = [m for m in st["members"] if m["node"] == nas["node"]][0]["feed"]["last"]
     check("status shows the last feed round", last and last["ok"])
 
+    def nc_get(path):
+        rq = urllib.request.Request(NC + "/remote.php/dav/files/admin/" + path, headers={
+            "Authorization": "Basic " + base64.b64encode(("admin:" + ADMIN_PW).encode()).decode()})
+        try:
+            return urllib.request.urlopen(rq, timeout=30).read()
+        except urllib.error.HTTPError as e:
+            return e.code
+    st = json.loads(occ("untrash:status"))
+    check("NAS at a local address: the status says Nextcloud blocks its files (and it does)",
+          st["mounts"]["local_blocked"] == [nas["node"]] and nc_get("NAS/new.jpg") != b"new")
+    occ("config:system:set", "allow_local_remote_servers", "--value=true", "--type=boolean")
+    check("... allow_local_remote_servers: no warning, the file opens",
+          json.loads(occ("untrash:status"))["mounts"]["local_blocked"] == []
+          and wait(lambda: nc_get("NAS/new.jpg") == b"new", 75))       # the web server re-reads config.php within 60 s
+
     # ---------------------------------------------------------------- automatic external storages
     def mounts(*a):
         return json.loads(occ("untrash:mounts", *a, check=False))
@@ -290,7 +338,7 @@ try:
     rec = r["made"][nas["node"]]["Music"]
     e = ext().get(rec["mount"], {})
     feed_music = r["round"][nas["node"]]["shares"]["Music"]
-    check("... named Music (nas-test), the name /Music being taken", rec["mount"] == "/Music (nas-test)" and rec["adopted"] is False)
+    check("... named Music (<NAS>), the name /Music being taken", rec["mount"] == "/Music (%s)" % NAS_NAME and rec["adopted"] is False)
     check("... WebDAV on the NAS, folder webdav/Music, credentials entered by each user, group admin",
           e.get("storage") == "\\OC\\Files\\Storage\\DAV" and e.get("authentication_type") == "password::userprovided"
           and e["configuration"].get("host") == "127.0.0.1:%d" % ap and e["configuration"].get("root") == "webdav/Music"
@@ -300,23 +348,23 @@ try:
     check("a second round changes nothing", mounts()["made"] == r["made"] and len(ext()) == 3)
     occ("group:add", "family")
     mounts("--groups", "admin, family")
-    check("occ untrash:mounts --groups: the storage follows", sorted(ext()["/Music (nas-test)"]["applicable_groups"]) == ["admin", "family"]
+    check("occ untrash:mounts --groups: the storage follows", sorted(ext()["/Music (%s)" % NAS_NAME]["applicable_groups"]) == ["admin", "family"]
           and ext()["/NAS"]["applicable_groups"] == [])
     base = "http://127.0.0.1:%d/untrash-cloudlink" % ap
     occ("untrash:nas", nas["node"], "http://127.0.0.1:%d/untrash-cloudlink" % free_port())
-    check("a NAS that does not answer keeps its storages", "/Music (nas-test)" in ext()
+    check("a NAS that does not answer keeps its storages", "/Music (%s)" % NAS_NAME in ext()
           and "Music" in json.loads(occ("untrash:status"))["mounts"]["made"][nas["node"]])
     occ("untrash:nas", nas["node"], base)
     mesh("cloud-link", nid, '["Photos"]')
     check("NAS withdraws Music: its storage is removed", wait(lambda: "Music" not in mounts()["made"].get(nas["node"], {}), 20)
-          and "/Music (nas-test)" not in ext())
+          and "/Music (%s)" % NAS_NAME not in ext())
     check("... the hand-made /NAS and the unrelated /Music stay", {"/NAS", "/Music"} <= set(ext()))
     mounts("--off")
     mesh("cloud-link", nid, '["Photos", "Music"]')
     time.sleep(2)
-    check("--off: no new storages", "/Music (nas-test)" not in ext() and mounts()["round"] == {"skipped": "off"})
+    check("--off: no new storages", "/Music (%s)" % NAS_NAME not in ext() and mounts()["round"] == {"skipped": "off"})
     mounts("--on")
-    check("--on again: Music is made", "/Music (nas-test)" in ext())
+    check("--on again: Music is made", "/Music (%s)" % NAS_NAME in ext())
     open(R + "/i-data/v1/Music/a.mp3", "w").write("a")
     open(share + "/both.jpg", "w").write("b")
     open(feed, "a").write(R + "/i-data/v1/Music/a.mp3\n" + share + "/both.jpg\n")
@@ -399,7 +447,7 @@ try:
     check("... and reports itself as removed (settings page shows it)", json.loads(occ("untrash:status")).get("removed") is True)
     occ("app:remove", "untrash")
     left = set(ext())
-    check("app:remove: the storages it made are gone, the hand-made ones stay", "/Music (nas-test)" not in left
+    check("app:remove: the storages it made are gone, the hand-made ones stay", "/Music (%s)" % NAS_NAME not in left
           and {"/NAS", "/Music"} <= left)
     gone = docker("exec", "-u", "www-data", NAME, "sh", "-c",
                   "ls -d /var/www/html/data/appdata_*/untrash/mesh 2>/dev/null; php occ config:list untrash", check=False)

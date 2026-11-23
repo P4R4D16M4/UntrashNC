@@ -48,7 +48,8 @@ class SettingsController extends Controller {
 
     private function status(): array {
         return $this->mesh->status() + ['mounts' => ['enabled' => $this->mounts->enabled(), 'groups' => $this->mounts->groups(),
-                                                     'made' => $this->mounts->state()]];
+                                                     'made' => $this->mounts->state(),
+                                                     'local_blocked' => $this->mounts->localBlocked()]];
     }
 
     /** Automatic external storages: on/off, groups (comma-separated, "" = everyone); then one round. */

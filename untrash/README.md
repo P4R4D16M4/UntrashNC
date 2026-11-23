@@ -16,6 +16,15 @@ in the UntrashOS repository.
 Requirements: Nextcloud 25 to 35, PHP with sodium, the app *External
 storage support* for the feed.
 
+**NAS at a local address** (home network, or its mesh address through the
+tunnel): Nextcloud refuses to read files from local addresses by default, so
+the storages list their folders but files do not open. The settings page warns
+about it. Allow it (this applies to every app of the Nextcloud) with
+
+```
+occ config:system:set allow_local_remote_servers --value=true --type=boolean
+```
+
 ## Installation
 
 Download `untrash-<version>.tar.gz` from the

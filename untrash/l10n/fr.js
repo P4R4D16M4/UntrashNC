@@ -25,6 +25,7 @@ OC.L10N.register(
     "Member": "Membre",
     "Member of {mesh} as {name}.": "Membre de {mesh} sous le nom {name}.",
     "Name in the mesh": "Nom dans le mesh",
+    "Nextcloud does not read files from local addresses such as {nas}: the storages show their folders, but files cannot be opened. To allow it (for all apps of this Nextcloud): occ config:system:set allow_local_remote_servers --value=true --type=boolean": "Nextcloud ne lit pas de fichiers depuis des adresses locales comme {nas} : les stockages montrent leurs dossiers, mais les fichiers ne s'ouvrent pas. Pour l'autoriser (pour toutes les applications de ce Nextcloud) : occ config:system:set allow_local_remote_servers --value=true --type=boolean",
     "No NAS in the mesh.": "Aucun NAS dans le mesh.",
     "No address for this NAS yet.": "Pas encore d'adresse pour ce NAS.",
     "No shares offered yet.": "Aucun partage proposé pour l'instant.",

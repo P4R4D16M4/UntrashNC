@@ -62,6 +62,41 @@ class Mounts {
         }
     }
 
+    /**
+     * NAS whose feed address is local (LAN, mesh): Nextcloud's HTTP client refuses
+     * those unless allow_local_remote_servers is on, so their WebDAV storages list
+     * folders but cannot open files.  @return string[] node ids
+     */
+    public function localBlocked(): array {
+        if ($this->config->getSystemValueBool('allow_local_remote_servers', false)) {
+            return [];
+        }
+        $out = [];
+        foreach (get_object_vars($this->mesh->load('nas.json', new \stdClass())) as $node => $n) {
+            $host = trim((string)(parse_url((string)($n->base ?? ''), PHP_URL_HOST) ?: ''), '[]');
+            if ($host !== '' && self::isLocal($host)) {
+                $out[] = (string)$node;
+            }
+        }
+        return $out;
+    }
+
+    private static function isLocal(string $host): bool {
+        $ips = filter_var($host, FILTER_VALIDATE_IP) ? [$host] : (gethostbynamel($host) ?: []);
+        if (!$ips && preg_match('/\.(local|lan|home|internal)$|^localhost$/i', $host)) {
+            return true;
+        }
+        foreach ($ips as $ip) {
+            if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+                return true;
+            }
+            if (strpos($ip, ':') !== false && preg_match('/^f[cd]/i', $ip)) {     // fc00::/7 (the mesh)
+                return true;
+            }
+        }
+        return false;
+    }
+
     /** The mounts made or adopted here, for the status: {node: {share: {id, mount, adopted}}}. */
     public function state(): \stdClass {
         return $this->mesh->load('mounts.json', new \stdClass());

@@ -18,7 +18,10 @@ devices:
   the NAS shares with no port forwarded at home.
 
 Requirements: Nextcloud 25 to 35, PHP with sodium, the app *External storage
-support* for the shares. On the NAS: UntrashOS 1.2 or newer.
+support* for the shares. On the NAS: UntrashOS 1.2 or newer. A NAS at a local
+or mesh address also needs `allow_local_remote_servers` (see the app README).
+
+![Your NAS shares in Nextcloud](screenshots/1-shares.png)
 
 **Download:** [releases](https://github.com/P4R4D16M4/UntrashNC/releases).
 Installation, setup and commands: [`untrash/README.md`](untrash/README.md).
@@ -33,6 +36,8 @@ Installation, setup and commands: [`untrash/README.md`](untrash/README.md).
 | `tests/` | `make test`, `make test-nextcloud` |
 | `package.py` | `make app`: reproducible release archives in `build/` |
 | `sign.py` | `make signed`: the same, code-signed for the app store, plus the upload signature |
+| `tools/` | `mkicon.py` (the app icon), `cdp_shot.py` + `store_images.py` (store screenshots from `UT_SHOWCASE=1` runs of the Docker test) |
+| `screenshots/` | the images the app store shows |
 
 The interface to the NAS is specified in UntrashOS:
 [`docs/architecture/cloud-api.md`](https://github.com/P4R4D16M4/UntrashOS/blob/v1.2/docs/architecture/cloud-api.md).
